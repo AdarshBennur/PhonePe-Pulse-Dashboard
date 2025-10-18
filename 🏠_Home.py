@@ -94,11 +94,11 @@ def main():
         """)
         
         features = [
-            "📊 **Overview Analytics** - Transaction distributions and geographic insights",
-            "💳 **Transaction Analysis** - Detailed transaction patterns and trends",  
-            "👥 **User Analytics** - User registration and app usage patterns",
-            "🛡️ **Insurance Analytics** - Insurance adoption and regional analysis",
-            "📈 **Trend Comparison** - Time-series analysis and comparative studies"
+            "📊 <b>Overview Analytics</b> - Transaction distributions and geographic insights",
+            "💳 <b>Transaction Analysis</b> - Detailed transaction patterns and trends",  
+            "👥 <b>User Analytics</b> - User registration and app usage patterns",
+            "🛡️ <b>Insurance Analytics</b> - Insurance adoption and regional analysis",
+            "📈 <b>Trend Comparison</b> - Time-series analysis and comparative studies"
         ]
         
         for feature in features:
