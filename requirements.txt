@@ -13,5 +13,9 @@ matplotlib>=3.5.0
 # Data processing utilities
 scipy>=1.9.0
 
+# Statistical modeling (required for plotly trendlines)
+statsmodels>=0.14.0
+patsy>=1.0.0
+
 # Performance optimizations
 pyarrow>=10.0.0
