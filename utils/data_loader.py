@@ -223,10 +223,10 @@ def load_india_geojson():
 def get_state_name_mapping():
     """
     Create comprehensive state name mapping between CSV data and GeoJSON.
-    Handles various naming conventions and normalizations.
+    Maps CSV state names to exact GeoJSON ST_NM property values.
     """
     return {
-        # Full state names to standard format
+        # CSV State Name -> GeoJSON ST_NM Property Value
         'Andhra Pradesh': 'Andhra Pradesh',
         'Arunachal Pradesh': 'Arunachal Pradesh', 
         'Assam': 'Assam',
@@ -255,14 +255,15 @@ def get_state_name_mapping():
         'Uttar Pradesh': 'Uttar Pradesh',
         'Uttarakhand': 'Uttarakhand',
         'West Bengal': 'West Bengal',
-        'Delhi': 'NCT OF Delhi',  # Special mapping for Delhi
+        'Delhi': 'Delhi',  # Exact match with GeoJSON
         'Jammu & Kashmir': 'Jammu & Kashmir',
         'Ladakh': 'Ladakh',
         'Puducherry': 'Puducherry',
         'Chandigarh': 'Chandigarh',
-        'Dadra and Nagar Haveli and Daman and Diu': 'Dadra and Nagar Haveli and Daman and Diu',
-        'Lakshadweep': 'Lakshadweep',
-        'Andaman & Nicobar Islands': 'Andaman & Nicobar Islands'
+        # Key differences between CSV and GeoJSON:
+        'Dadra & Nagar Haveli & Daman & Diu': 'Dadra and Nagar Haveli and Daman and Diu',  # & vs and
+        'Andaman & Nicobar Islands': 'Andaman & Nicobar',  # Missing "Islands"
+        'Lakshadweep': 'Lakshadweep'
     }
 
 
@@ -289,67 +290,100 @@ def create_enhanced_choropleth(df, value_col, title, color_scale='Viridis', show
         state_mapping = get_state_name_mapping()
         
         if not geojson_data.get('features'):
-            # Fallback to enhanced bar chart if GeoJSON fails
+            st.warning("GeoJSON data not available. Using fallback visualization.")
             return create_fallback_visualization(df, value_col, title, color_scale)
         
         # Prepare data for choropleth
         plot_df = df.copy()
         
         # Normalize state names using mapping
-        plot_df['State_Normalized'] = plot_df['State'].map(state_mapping).fillna(plot_df['State'])
+        plot_df['State_Normalized'] = plot_df['State'].map(state_mapping)
         
-        # Create choropleth map
+        # Check for unmapped states and handle gracefully
+        unmapped_states = plot_df[plot_df['State_Normalized'].isna()]['State'].unique()
+        if len(unmapped_states) > 0:
+            # Log unmapped states but don't clutter UI
+            print(f"Warning: Unmapped states found: {list(unmapped_states)}")
+            # Fill unmapped states with original names as fallback
+            plot_df['State_Normalized'] = plot_df['State_Normalized'].fillna(plot_df['State'])
+        
+        # Remove rows with no state mapping
+        plot_df = plot_df.dropna(subset=['State_Normalized'])
+        
+        if plot_df.empty:
+            st.error("No valid state data after mapping. Using fallback visualization.")
+            return create_fallback_visualization(df, value_col, title, color_scale)
+        
+        # Create choropleth map with correct featureidkey
         fig = px.choropleth(
             plot_df,
             geojson=geojson_data,
             locations='State_Normalized',
             color=value_col,
-            hover_name='State',
-            hover_data={value_col: ':,.0f'},
+            hover_name='State',  # Use original state name for hover
+            hover_data={value_col: ':,.0f', 'State_Normalized': False},  # Hide normalized name
             color_continuous_scale=color_scale,
             title=title,
-            featureidkey="properties.NAME_1",  # Adjust based on GeoJSON structure
+            featureidkey="properties.ST_NM",  # Correct property key for India states GeoJSON
             labels={value_col: value_col.replace('_', ' ').title()}
         )
         
-        # Customize layout for India
+        # Customize layout for India with proper bounds
         fig.update_geos(
             projection_type="natural earth",
             showlakes=True,
-            lakecolor='lightblue',
+            lakecolor='rgba(173, 216, 230, 0.3)',  # Light blue with transparency
             showocean=True,
-            oceancolor='lightblue',
-            fitbounds="locations",
-            visible=False
+            oceancolor='rgba(173, 216, 230, 0.1)',  # Very light blue
+            showland=True,
+            landcolor='rgba(243, 243, 243, 0.8)',  # Light gray for non-data areas
+            fitbounds="locations",  # Fit to the data locations (India)
+            visible=False  # Hide the default geographic features for cleaner look
         )
         
-        # Update layout
+        # Update layout for better appearance
         fig.update_layout(
             height=600,
             title={
                 'text': title,
                 'x': 0.5,
                 'xanchor': 'center',
-                'font': {'size': 16}
+                'font': {'size': 16, 'family': 'Arial, sans-serif'}
             },
             coloraxis_showscale=show_scale,
-            margin={"r": 0, "t": 50, "l": 0, "b": 0}
+            coloraxis_colorbar={
+                'title': value_col.replace('_', ' ').title(),
+                'titleside': 'right',
+                'tickmode': 'linear',
+                'tick0': 0,
+                'dtick': 'auto'
+            },
+            margin={"r": 0, "t": 60, "l": 0, "b": 0},
+            font={'family': 'Arial, sans-serif'}
         )
         
-        # Add hover template
+        # Enhanced hover templates
         if value_col == 'Transaction_Count':
             hover_template = '<b>%{hovertext}</b><br>Transactions: %{z:,.0f}<extra></extra>'
         elif value_col == 'Transaction_Amount':
             hover_template = '<b>%{hovertext}</b><br>Amount: ₹%{z:,.0f}<extra></extra>'
+        elif value_col == 'Avg_Transaction_Value':
+            hover_template = '<b>%{hovertext}</b><br>Avg Value: ₹%{z:,.2f}<extra></extra>'
         else:
             hover_template = '<b>%{hovertext}</b><br>Value: %{z:,.2f}<extra></extra>'
             
-        fig.update_traces(hovertemplate=hover_template)
+        fig.update_traces(
+            hovertemplate=hover_template,
+            marker_line_color='white',
+            marker_line_width=0.5
+        )
         
         return fig
         
     except Exception as e:
-        st.warning(f"Choropleth map failed to load: {str(e)}. Showing fallback visualization.")
+        error_msg = f"Choropleth map error: {str(e)}"
+        print(f"Choropleth Error Details: {error_msg}")  # Log for debugging
+        st.warning("Map visualization temporarily unavailable. Showing alternative view.")
         return create_fallback_visualization(df, value_col, title, color_scale)
 
 
@@ -428,6 +462,54 @@ def create_transaction_type_filter_choropleth(df, selected_type=None):
     ).fillna(0)
     
     return state_data
+
+
+def test_state_mapping():
+    """
+    Test function to validate state name mapping between CSV and GeoJSON.
+    Use this for debugging choropleth issues.
+    """
+    try:
+        # Load actual data
+        df = pd.read_csv('data/aggregated_transactions.csv') if 'data/aggregated_transactions.csv' else None
+        if df is None:
+            return "CSV data not available"
+        
+        # Get unique states from CSV
+        csv_states = set(df['State'].unique())
+        
+        # Get state mapping
+        mapping = get_state_name_mapping()
+        
+        # Get GeoJSON states
+        geojson_data = load_india_geojson()
+        if geojson_data.get('features'):
+            geojson_states = set()
+            for feature in geojson_data['features']:
+                state_name = feature.get('properties', {}).get('ST_NM')
+                if state_name:
+                    geojson_states.add(state_name)
+        else:
+            geojson_states = set()
+        
+        # Analysis
+        mapped_states = set(mapping.values())
+        unmapped_csv = csv_states - set(mapping.keys())
+        unmapped_geojson = geojson_states - mapped_states
+        
+        results = {
+            'csv_states_count': len(csv_states),
+            'geojson_states_count': len(geojson_states),
+            'mapping_count': len(mapping),
+            'unmapped_csv_states': list(unmapped_csv),
+            'unmapped_geojson_states': list(unmapped_geojson),
+            'mapping_success': len(unmapped_csv) == 0 and len(unmapped_geojson) == 0
+        }
+        
+        return results
+        
+    except Exception as e:
+        return f"Error in state mapping test: {str(e)}"
 
 
 def get_theme_aware_styles():
