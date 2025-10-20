@@ -24,6 +24,7 @@ from utils.data_loader import (
     format_currency,
     format_number,
     create_enhanced_choropleth,
+    create_simple_choropleth,
     create_transaction_type_filter_choropleth,
     load_india_geojson,
     get_state_name_mapping
@@ -209,9 +210,9 @@ def main():
             state_data = filtered_trans.groupby('State')['Transaction_Count'].sum().reset_index()
             state_data = state_data.sort_values('Transaction_Count', ascending=False)
             
-            # Create enhanced choropleth
+            # Create choropleth (try simple version first)
             title_suffix = f" ({selected_type})" if selected_type != 'All Types' else ""
-            fig_heat1 = create_enhanced_choropleth(
+            fig_heat1 = create_simple_choropleth(
                 state_data, 
                 'Transaction_Count', 
                 f"State-wise Transaction Count Distribution{title_suffix}",
@@ -239,7 +240,7 @@ def main():
             state_amount = state_amount.sort_values('Transaction_Amount', ascending=False)
             
             title_suffix = f" ({selected_type})" if selected_type != 'All Types' else ""
-            fig_heat2 = create_enhanced_choropleth(
+            fig_heat2 = create_simple_choropleth(
                 state_amount, 
                 'Transaction_Amount', 
                 f"State-wise Transaction Amount Distribution{title_suffix}",
@@ -276,7 +277,7 @@ def main():
             state_avg = state_avg.sort_values('Avg_Transaction_Value', ascending=False)
             
             title_suffix = f" ({selected_type})" if selected_type != 'All Types' else ""
-            fig_heat3 = create_enhanced_choropleth(
+            fig_heat3 = create_simple_choropleth(
                 state_avg, 
                 'Avg_Transaction_Value', 
                 f"State-wise Average Transaction Value{title_suffix}",

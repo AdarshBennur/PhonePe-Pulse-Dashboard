@@ -267,6 +267,53 @@ def get_state_name_mapping():
     }
 
 
+def create_simple_choropleth(df, value_col, title, color_scale='Viridis'):
+    """
+    Create a simple, reliable choropleth map of India.
+    Focuses on functionality over fancy features.
+    """
+    import plotly.express as px
+    import pandas as pd
+    
+    try:
+        # Load GeoJSON and state mapping
+        geojson_data = load_india_geojson()
+        state_mapping = get_state_name_mapping()
+        
+        if not geojson_data.get('features'):
+            return create_fallback_visualization(df, value_col, title, color_scale)
+        
+        # Prepare data
+        plot_df = df.copy()
+        plot_df['State_Normalized'] = plot_df['State'].map(state_mapping).fillna(plot_df['State'])
+        plot_df = plot_df.dropna(subset=['State_Normalized'])
+        
+        if plot_df.empty:
+            return create_fallback_visualization(df, value_col, title, color_scale)
+        
+        # Create simple choropleth
+        fig = px.choropleth(
+            plot_df,
+            geojson=geojson_data,
+            locations='State_Normalized',
+            color=value_col,
+            hover_name='State',
+            color_continuous_scale=color_scale,
+            title=title,
+            featureidkey="properties.ST_NM"
+        )
+        
+        # Simple layout updates
+        fig.update_geos(fitbounds="locations", visible=False)
+        fig.update_layout(height=600, title_x=0.5)
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Simple choropleth error: {str(e)}")
+        return create_fallback_visualization(df, value_col, title, color_scale)
+
+
 def create_enhanced_choropleth(df, value_col, title, color_scale='Viridis', show_scale=True):
     """
     Create an enhanced interactive choropleth map of India with proper GeoJSON integration.
@@ -321,7 +368,6 @@ def create_enhanced_choropleth(df, value_col, title, color_scale='Viridis', show
             locations='State_Normalized',
             color=value_col,
             hover_name='State',  # Use original state name for hover
-            hover_data={value_col: ':,.0f', 'State_Normalized': False},  # Hide normalized name
             color_continuous_scale=color_scale,
             title=title,
             featureidkey="properties.ST_NM",  # Correct property key for India states GeoJSON
@@ -352,13 +398,13 @@ def create_enhanced_choropleth(df, value_col, title, color_scale='Viridis', show
             },
             coloraxis_showscale=show_scale,
             coloraxis_colorbar={
-                'title': value_col.replace('_', ' ').title(),
-                'titleside': 'right',
-                'tickmode': 'linear',
-                'tick0': 0,
-                'dtick': 'auto'
+                'title': {'text': value_col.replace('_', ' ').title()},
+                'thickness': 15,
+                'len': 0.7,
+                'x': 1.01,
+                'xanchor': 'left'
             },
-            margin={"r": 0, "t": 60, "l": 0, "b": 0},
+            margin={"r": 100, "t": 60, "l": 0, "b": 0},
             font={'family': 'Arial, sans-serif'}
         )
         
@@ -381,8 +427,12 @@ def create_enhanced_choropleth(df, value_col, title, color_scale='Viridis', show
         return fig
         
     except Exception as e:
+        import traceback
         error_msg = f"Choropleth map error: {str(e)}"
-        print(f"Choropleth Error Details: {error_msg}")  # Log for debugging
+        full_traceback = traceback.format_exc()
+        print(f"Choropleth Error Details: {error_msg}")
+        print(f"Full traceback: {full_traceback}")
+        st.error(f"Choropleth error: {error_msg}")
         st.warning("Map visualization temporarily unavailable. Showing alternative view.")
         return create_fallback_visualization(df, value_col, title, color_scale)
 
@@ -510,6 +560,52 @@ def test_state_mapping():
         
     except Exception as e:
         return f"Error in state mapping test: {str(e)}"
+
+
+def test_choropleth_simple():
+    """
+    Simple test function to create a basic choropleth map.
+    Returns success/failure status for debugging.
+    """
+    try:
+        import plotly.express as px
+        import pandas as pd
+        
+        # Create simple test data
+        test_data = pd.DataFrame({
+            'State': ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Uttar Pradesh'],
+            'Value': [100, 80, 90, 75, 95]
+        })
+        
+        # Try to load GeoJSON
+        geojson_data = load_india_geojson()
+        if not geojson_data.get('features'):
+            return {'success': False, 'error': 'GeoJSON data not available'}
+        
+        # Apply state mapping
+        mapping = get_state_name_mapping()
+        test_data['State_Normalized'] = test_data['State'].map(mapping).fillna(test_data['State'])
+        
+        # Try to create choropleth
+        fig = px.choropleth(
+            test_data,
+            geojson=geojson_data,
+            locations='State_Normalized',
+            color='Value',
+            hover_name='State',
+            featureidkey="properties.ST_NM",
+            title="Test Choropleth"
+        )
+        
+        return {'success': True, 'states_mapped': len(test_data), 'geojson_features': len(geojson_data['features'])}
+        
+    except Exception as e:
+        import traceback
+        return {
+            'success': False, 
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
 
 
 def get_theme_aware_styles():
