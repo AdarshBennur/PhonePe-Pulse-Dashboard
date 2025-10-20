@@ -186,3 +186,138 @@ def apply_filters(df: pd.DataFrame, state: str = None, year: int = None, quarter
         filtered_df = filtered_df[filtered_df['Quarter'] == quarter]
     
     return filtered_df
+
+
+def get_theme_aware_styles():
+    """
+    Get theme-aware CSS styles that adapt to light/dark mode.
+    Returns appropriate colors for text and backgrounds based on the current theme.
+    """
+    return {
+        'feature_card_styles': """
+        <style>
+            .feature-card-adaptive {
+                padding: 1rem;
+                border-radius: 8px;
+                border-left: 4px solid #6739B7;
+                margin: 0.5rem 0;
+                transition: all 0.3s ease;
+            }
+            
+            /* Use CSS custom properties that adapt to Streamlit themes */
+            .feature-card-adaptive {
+                background-color: rgba(var(--secondary-background-color-rgb, 248, 249, 250), 0.8);
+                color: var(--text-color, #333333);
+                border: 1px solid rgba(128, 128, 128, 0.2);
+            }
+            
+            /* Fallback: Use CSS media queries for system preference */
+            @media (prefers-color-scheme: dark) {
+                .feature-card-adaptive {
+                    background-color: rgba(255, 255, 255, 0.08) !important;
+                    color: #ffffff !important;
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                }
+            }
+            
+            @media (prefers-color-scheme: light) {
+                .feature-card-adaptive {
+                    background-color: #f8f9fa !important;
+                    color: #333333 !important;
+                    border: 1px solid rgba(128, 128, 128, 0.2) !important;
+                }
+            }
+            
+            /* Enhanced styling for better visibility */
+            .feature-card-adaptive b {
+                color: inherit;
+                font-weight: 600;
+            }
+            
+            .feature-card-adaptive:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Dark mode hover effect */
+            @media (prefers-color-scheme: dark) {
+                .feature-card-adaptive:hover {
+                    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1) !important;
+                }
+            }
+        </style>
+        """,
+        
+        'theme_detection_script': """
+        <script>
+            // Theme detection and adaptation script
+            function adaptToTheme() {
+                // Try to detect Streamlit's current theme
+                const streamlitApp = document.querySelector('[data-testid="stApp"]');
+                if (streamlitApp) {
+                    const computedStyle = window.getComputedStyle(streamlitApp);
+                    const backgroundColor = computedStyle.backgroundColor;
+                    
+                    // Parse RGB values to determine if it's dark or light theme
+                    const rgb = backgroundColor.match(/\\d+/g);
+                    if (rgb && rgb.length >= 3) {
+                        const [r, g, b] = rgb.map(Number);
+                        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                        
+                        // Apply theme-specific styles
+                        const cards = document.querySelectorAll('.feature-card-adaptive');
+                        cards.forEach(card => {
+                            if (brightness < 128) { // Dark theme
+                                card.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                                card.style.color = '#ffffff';
+                                card.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+                            } else { // Light theme
+                                card.style.backgroundColor = '#f8f9fa';
+                                card.style.color = '#333333';
+                                card.style.border = '1px solid rgba(128, 128, 128, 0.2)';
+                            }
+                        });
+                    }
+                }
+            }
+            
+            // Run adaptation immediately and on changes
+            adaptToTheme();
+            
+            // Watch for theme changes
+            const observer = new MutationObserver(adaptToTheme);
+            if (document.body) {
+                observer.observe(document.body, { 
+                    attributes: true, 
+                    attributeFilter: ['class', 'style'],
+                    childList: true, 
+                    subtree: true 
+                });
+            }
+            
+            // Also listen for system theme changes
+            if (window.matchMedia) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', adaptToTheme);
+            }
+        </script>
+        """
+    }
+
+
+def render_theme_aware_feature_card(content):
+    """
+    Render a theme-aware feature card with proper contrast in both light and dark modes.
+    
+    Args:
+        content (str): The HTML content to display inside the card
+    
+    Returns:
+        str: Complete HTML with theme-aware styling
+    """
+    styles = get_theme_aware_styles()
+    
+    return f"""
+    {styles['feature_card_styles']}
+    {styles['theme_detection_script']}
+    <div class="feature-card-adaptive">{content}</div>
+    """

@@ -20,7 +20,9 @@ from utils.data_loader import (
     load_aggregated_insurance,
     get_summary_stats,
     format_currency,
-    format_number
+    format_number,
+    get_theme_aware_styles,
+    render_theme_aware_feature_card
 )
 
 # Set page config
@@ -51,13 +53,6 @@ st.markdown("""
         margin: 0.5rem;
     }
     
-    .feature-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #6739B7;
-        margin: 0.5rem 0;
-    }
     
     .sidebar .stSelectbox > label {
         color: #6739B7;
@@ -101,8 +96,14 @@ def main():
             "📈 <b>Trend Comparison</b> - Time-series analysis and comparative studies"
         ]
         
+        # Apply theme-aware styles once
+        styles = get_theme_aware_styles()
+        st.markdown(styles['feature_card_styles'], unsafe_allow_html=True)
+        st.markdown(styles['theme_detection_script'], unsafe_allow_html=True)
+        
+        # Render each feature card with theme-aware styling
         for feature in features:
-            st.markdown(f'<div class="feature-card">{feature}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="feature-card-adaptive">{feature}</div>', unsafe_allow_html=True)
     
     with col2:
         st.markdown("### 📋 Navigation")
