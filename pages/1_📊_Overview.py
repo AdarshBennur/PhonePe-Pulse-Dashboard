@@ -22,7 +22,11 @@ from utils.data_loader import (
     get_quarter_list,
     apply_filters,
     format_currency,
-    format_number
+    format_number,
+    create_enhanced_choropleth,
+    create_transaction_type_filter_choropleth,
+    load_india_geojson,
+    get_state_name_mapping
 )
 
 # Set page config
@@ -47,41 +51,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def create_india_choropleth(df, value_col, title):
-    """Create choropleth map of India"""
-    # State mapping for proper choropleth (you may need to adjust based on your data)
-    state_mapping = {
-        'Andhra Pradesh': 'AP', 'Arunachal Pradesh': 'AR', 'Assam': 'AS',
-        'Bihar': 'BR', 'Chhattisgarh': 'CT', 'Goa': 'GA', 'Gujarat': 'GJ',
-        'Haryana': 'HR', 'Himachal Pradesh': 'HP', 'Jharkhand': 'JH',
-        'Karnataka': 'KA', 'Kerala': 'KL', 'Madhya Pradesh': 'MP',
-        'Maharashtra': 'MH', 'Manipur': 'MN', 'Meghalaya': 'ML',
-        'Mizoram': 'MZ', 'Nagaland': 'NL', 'Odisha': 'OR', 'Punjab': 'PB',
-        'Rajasthan': 'RJ', 'Sikkim': 'SK', 'Tamil Nadu': 'TN',
-        'Telangana': 'TG', 'Tripura': 'TR', 'Uttar Pradesh': 'UP',
-        'Uttarakhand': 'UT', 'West Bengal': 'WB', 'Delhi': 'DL',
-        'Jammu & Kashmir': 'JK', 'Ladakh': 'LA', 'Puducherry': 'PY',
-        'Chandigarh': 'CH', 'Dadra and Nagar Haveli and Daman and Diu': 'DN',
-        'Lakshadweep': 'LD', 'Andaman & Nicobar Islands': 'AN'
-    }
-    
-    # Create a simple bar chart instead of choropleth for now
-    fig = px.bar(
-        df.head(20),  # Top 20 states
-        x=value_col,
-        y='State',
-        orientation='h',
-        title=title,
-        color=value_col,
-        color_continuous_scale='Viridis'
-    )
-    
-    fig.update_layout(
-        height=600,
-        yaxis={'categoryorder': 'total ascending'}
-    )
-    
-    return fig
+def get_transaction_types(df):
+    """Get unique transaction types for filtering"""
+    return ['All Types'] + sorted(df['Transaction_Type'].unique().tolist())
 
 
 def main():
@@ -111,8 +83,16 @@ def main():
     selected_quarter = st.sidebar.selectbox("Select Quarter", quarters, key="overview_quarter")
     quarter_filter = None if selected_quarter == 'All Quarters' else selected_quarter
     
+    # Transaction type filter
+    transaction_types = get_transaction_types(trans_df)
+    selected_type = st.sidebar.selectbox("Select Transaction Type", transaction_types, key="overview_type")
+    
     # Apply filters
     filtered_trans = apply_filters(trans_df, year=year_filter, quarter=quarter_filter)
+    
+    # Apply transaction type filter
+    if selected_type and selected_type != 'All Types':
+        filtered_trans = filtered_trans[filtered_trans['Transaction_Type'] == selected_type]
     
     if filtered_trans.empty:
         st.warning("No data available for the selected filters!")
@@ -198,46 +178,121 @@ def main():
         
         st.plotly_chart(fig_bar, use_container_width=True)
     
-    # Geographic heatmaps
-    st.subheader("🗺️ Geographic Distribution")
+    # Geographic heatmaps with enhanced interactivity
+    st.subheader("🗺️ Interactive Geographic Heatmaps")
     
-    tab1, tab2 = st.tabs(["📊 Transaction Count Heatmap", "💰 Transaction Amount Heatmap"])
+    # Add interpretation guide
+    with st.expander("ℹ️ How to interpret these maps"):
+        st.markdown("""
+        **Interactive State-wise Heatmaps:**
+        - **Darker colors** indicate higher values (more transactions/amounts)
+        - **Hover** over states to see exact values and state names
+        - **Zoom and pan** the map for detailed exploration
+        - Use the **filters on the left** to focus on specific years, quarters, or transaction types
+        
+        **Color Scales:**
+        - 📊 **Transaction Count**: Viridis scale (purple to yellow)
+        - 💰 **Transaction Amount**: Plasma scale (purple to pink to yellow)
+        - 📈 **Average Value**: RdYlBu scale (red to yellow to blue)
+        
+        **Navigation:** Click on tabs below to switch between different metrics.
+        """)
+    
+    tab1, tab2, tab3 = st.tabs(["📊 Transaction Count", "💰 Transaction Amount", "📈 Average Transaction Value"])
     
     with tab1:
-        state_data = filtered_trans.groupby('State')['Transaction_Count'].sum().reset_index()
-        state_data = state_data.sort_values('Transaction_Count', ascending=False)
+        st.markdown("**Transaction Count Distribution** - Shows total number of transactions per state")
         
-        fig_heat1 = create_india_choropleth(
-            state_data, 
-            'Transaction_Count', 
-            f"State-wise Transaction Count Distribution"
-        )
+        col1, col2 = st.columns([3, 1])
         
-        st.plotly_chart(fig_heat1, use_container_width=True)
+        with col1:
+            state_data = filtered_trans.groupby('State')['Transaction_Count'].sum().reset_index()
+            state_data = state_data.sort_values('Transaction_Count', ascending=False)
+            
+            # Create enhanced choropleth
+            title_suffix = f" ({selected_type})" if selected_type != 'All Types' else ""
+            fig_heat1 = create_enhanced_choropleth(
+                state_data, 
+                'Transaction_Count', 
+                f"State-wise Transaction Count Distribution{title_suffix}",
+                color_scale='Viridis'
+            )
+            
+            st.plotly_chart(fig_heat1, use_container_width=True)
         
-        # Show top 10 performers table
-        st.subheader("🏆 Top 10 States by Transaction Count")
-        top_states_count = state_data.head(10).copy()
-        top_states_count['Transaction_Count'] = top_states_count['Transaction_Count'].apply(format_number)
-        st.dataframe(top_states_count, use_container_width=True, hide_index=True)
+        with col2:
+            # Show top 10 performers table
+            st.markdown("**🏆 Top 10 States**")
+            top_states_count = state_data.head(10).copy()
+            top_states_count['Formatted_Count'] = top_states_count['Transaction_Count'].apply(format_number)
+            display_df = top_states_count[['State', 'Formatted_Count']].copy()
+            display_df.columns = ['State', 'Count']
+            st.dataframe(display_df, use_container_width=True, hide_index=True, height=400)
     
     with tab2:
-        state_amount = filtered_trans.groupby('State')['Transaction_Amount'].sum().reset_index()
-        state_amount = state_amount.sort_values('Transaction_Amount', ascending=False)
+        st.markdown("**Transaction Amount Distribution** - Shows total transaction value per state")
         
-        fig_heat2 = create_india_choropleth(
-            state_amount, 
-            'Transaction_Amount', 
-            f"State-wise Transaction Amount Distribution"
-        )
+        col1, col2 = st.columns([3, 1])
         
-        st.plotly_chart(fig_heat2, use_container_width=True)
+        with col1:
+            state_amount = filtered_trans.groupby('State')['Transaction_Amount'].sum().reset_index()
+            state_amount = state_amount.sort_values('Transaction_Amount', ascending=False)
+            
+            title_suffix = f" ({selected_type})" if selected_type != 'All Types' else ""
+            fig_heat2 = create_enhanced_choropleth(
+                state_amount, 
+                'Transaction_Amount', 
+                f"State-wise Transaction Amount Distribution{title_suffix}",
+                color_scale='Plasma'
+            )
+            
+            st.plotly_chart(fig_heat2, use_container_width=True)
         
-        # Show top 10 performers table
-        st.subheader("🏆 Top 10 States by Transaction Amount")
-        top_states_amount = state_amount.head(10).copy()
-        top_states_amount['Transaction_Amount'] = top_states_amount['Transaction_Amount'].apply(format_currency)
-        st.dataframe(top_states_amount, use_container_width=True, hide_index=True)
+        with col2:
+            # Show top 10 performers table
+            st.markdown("**🏆 Top 10 States**")
+            top_states_amount = state_amount.head(10).copy()
+            top_states_amount['Formatted_Amount'] = top_states_amount['Transaction_Amount'].apply(format_currency)
+            display_df = top_states_amount[['State', 'Formatted_Amount']].copy()
+            display_df.columns = ['State', 'Amount']
+            st.dataframe(display_df, use_container_width=True, hide_index=True, height=400)
+    
+    with tab3:
+        st.markdown("**Average Transaction Value** - Shows average transaction amount per state")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            # Calculate average transaction value by state
+            state_avg = filtered_trans.groupby('State').agg({
+                'Transaction_Count': 'sum',
+                'Transaction_Amount': 'sum'
+            }).reset_index()
+            
+            state_avg['Avg_Transaction_Value'] = (
+                state_avg['Transaction_Amount'] / state_avg['Transaction_Count']
+            ).fillna(0)
+            
+            state_avg = state_avg.sort_values('Avg_Transaction_Value', ascending=False)
+            
+            title_suffix = f" ({selected_type})" if selected_type != 'All Types' else ""
+            fig_heat3 = create_enhanced_choropleth(
+                state_avg, 
+                'Avg_Transaction_Value', 
+                f"State-wise Average Transaction Value{title_suffix}",
+                color_scale='RdYlBu'
+            )
+            
+            st.plotly_chart(fig_heat3, use_container_width=True)
+        
+        with col2:
+            # Show top 10 performers table
+            st.markdown("**🏆 Top 10 States**")
+            top_states_avg = state_avg.head(10).copy()
+            top_states_avg['Formatted_Avg'] = top_states_avg['Avg_Transaction_Value'].apply(format_currency)
+            display_df = top_states_avg[['State', 'Formatted_Avg']].copy()
+            display_df.columns = ['State', 'Avg Value']
+            st.dataframe(display_df, use_container_width=True, hide_index=True, height=400)
     
     # District-wise analysis (if map data available)
     if not map_df.empty:

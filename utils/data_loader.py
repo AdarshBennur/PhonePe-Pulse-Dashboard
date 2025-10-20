@@ -188,6 +188,248 @@ def apply_filters(df: pd.DataFrame, state: str = None, year: int = None, quarter
     return filtered_df
 
 
+@st.cache_data
+def load_india_geojson():
+    """
+    Load India states GeoJSON data with automated fetch capability.
+    Returns GeoJSON data for choropleth maps.
+    """
+    import requests
+    import json
+    
+    try:
+        # Try to load from a reliable GeoJSON source
+        # Using a trusted India states GeoJSON from GitHub
+        geojson_url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+        
+        response = requests.get(geojson_url, timeout=10)
+        response.raise_for_status()
+        
+        geojson_data = response.json()
+        
+        # Verify the GeoJSON structure
+        if 'features' not in geojson_data:
+            raise ValueError("Invalid GeoJSON structure: missing 'features'")
+            
+        return geojson_data
+        
+    except Exception as e:
+        st.error(f"Failed to load India GeoJSON data: {str(e)}")
+        # Return empty GeoJSON structure as fallback
+        return {"type": "FeatureCollection", "features": []}
+
+
+@st.cache_data
+def get_state_name_mapping():
+    """
+    Create comprehensive state name mapping between CSV data and GeoJSON.
+    Handles various naming conventions and normalizations.
+    """
+    return {
+        # Full state names to standard format
+        'Andhra Pradesh': 'Andhra Pradesh',
+        'Arunachal Pradesh': 'Arunachal Pradesh', 
+        'Assam': 'Assam',
+        'Bihar': 'Bihar',
+        'Chhattisgarh': 'Chhattisgarh',
+        'Goa': 'Goa',
+        'Gujarat': 'Gujarat',
+        'Haryana': 'Haryana',
+        'Himachal Pradesh': 'Himachal Pradesh',
+        'Jharkhand': 'Jharkhand',
+        'Karnataka': 'Karnataka',
+        'Kerala': 'Kerala',
+        'Madhya Pradesh': 'Madhya Pradesh',
+        'Maharashtra': 'Maharashtra',
+        'Manipur': 'Manipur',
+        'Meghalaya': 'Meghalaya',
+        'Mizoram': 'Mizoram',
+        'Nagaland': 'Nagaland',
+        'Odisha': 'Odisha',
+        'Punjab': 'Punjab',
+        'Rajasthan': 'Rajasthan',
+        'Sikkim': 'Sikkim',
+        'Tamil Nadu': 'Tamil Nadu',
+        'Telangana': 'Telangana',
+        'Tripura': 'Tripura',
+        'Uttar Pradesh': 'Uttar Pradesh',
+        'Uttarakhand': 'Uttarakhand',
+        'West Bengal': 'West Bengal',
+        'Delhi': 'NCT OF Delhi',  # Special mapping for Delhi
+        'Jammu & Kashmir': 'Jammu & Kashmir',
+        'Ladakh': 'Ladakh',
+        'Puducherry': 'Puducherry',
+        'Chandigarh': 'Chandigarh',
+        'Dadra and Nagar Haveli and Daman and Diu': 'Dadra and Nagar Haveli and Daman and Diu',
+        'Lakshadweep': 'Lakshadweep',
+        'Andaman & Nicobar Islands': 'Andaman & Nicobar Islands'
+    }
+
+
+def create_enhanced_choropleth(df, value_col, title, color_scale='Viridis', show_scale=True):
+    """
+    Create an enhanced interactive choropleth map of India with proper GeoJSON integration.
+    
+    Args:
+        df (pd.DataFrame): DataFrame with 'State' and value column
+        value_col (str): Column name containing values to map
+        title (str): Chart title
+        color_scale (str): Plotly color scale (default: 'Viridis')
+        show_scale (bool): Whether to show color scale bar
+    
+    Returns:
+        plotly.graph_objects.Figure: Interactive choropleth map
+    """
+    import plotly.express as px
+    import pandas as pd
+    
+    try:
+        # Load GeoJSON and state mapping
+        geojson_data = load_india_geojson()
+        state_mapping = get_state_name_mapping()
+        
+        if not geojson_data.get('features'):
+            # Fallback to enhanced bar chart if GeoJSON fails
+            return create_fallback_visualization(df, value_col, title, color_scale)
+        
+        # Prepare data for choropleth
+        plot_df = df.copy()
+        
+        # Normalize state names using mapping
+        plot_df['State_Normalized'] = plot_df['State'].map(state_mapping).fillna(plot_df['State'])
+        
+        # Create choropleth map
+        fig = px.choropleth(
+            plot_df,
+            geojson=geojson_data,
+            locations='State_Normalized',
+            color=value_col,
+            hover_name='State',
+            hover_data={value_col: ':,.0f'},
+            color_continuous_scale=color_scale,
+            title=title,
+            featureidkey="properties.NAME_1",  # Adjust based on GeoJSON structure
+            labels={value_col: value_col.replace('_', ' ').title()}
+        )
+        
+        # Customize layout for India
+        fig.update_geos(
+            projection_type="natural earth",
+            showlakes=True,
+            lakecolor='lightblue',
+            showocean=True,
+            oceancolor='lightblue',
+            fitbounds="locations",
+            visible=False
+        )
+        
+        # Update layout
+        fig.update_layout(
+            height=600,
+            title={
+                'text': title,
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            coloraxis_showscale=show_scale,
+            margin={"r": 0, "t": 50, "l": 0, "b": 0}
+        )
+        
+        # Add hover template
+        if value_col == 'Transaction_Count':
+            hover_template = '<b>%{hovertext}</b><br>Transactions: %{z:,.0f}<extra></extra>'
+        elif value_col == 'Transaction_Amount':
+            hover_template = '<b>%{hovertext}</b><br>Amount: ₹%{z:,.0f}<extra></extra>'
+        else:
+            hover_template = '<b>%{hovertext}</b><br>Value: %{z:,.2f}<extra></extra>'
+            
+        fig.update_traces(hovertemplate=hover_template)
+        
+        return fig
+        
+    except Exception as e:
+        st.warning(f"Choropleth map failed to load: {str(e)}. Showing fallback visualization.")
+        return create_fallback_visualization(df, value_col, title, color_scale)
+
+
+def create_fallback_visualization(df, value_col, title, color_scale='Viridis'):
+    """
+    Create enhanced fallback bar chart when choropleth fails.
+    """
+    import plotly.express as px
+    
+    # Sort by value for better visualization
+    plot_df = df.sort_values(value_col, ascending=True).tail(20)  # Top 20 states
+    
+    fig = px.bar(
+        plot_df,
+        x=value_col,
+        y='State',
+        orientation='h',
+        title=f"{title} (Top 20 States)",
+        color=value_col,
+        color_continuous_scale=color_scale,
+        text=value_col
+    )
+    
+    # Format text on bars
+    if value_col == 'Transaction_Count':
+        fig.update_traces(texttemplate='%{text:,.0f}', textposition='auto')
+        hover_template = '<b>%{y}</b><br>Transactions: %{x:,.0f}<extra></extra>'
+    elif value_col == 'Transaction_Amount':
+        fig.update_traces(texttemplate='₹%{text:,.0f}', textposition='auto')
+        hover_template = '<b>%{y}</b><br>Amount: ₹%{x:,.0f}<extra></extra>'
+    else:
+        fig.update_traces(texttemplate='%{text:,.2f}', textposition='auto')
+        hover_template = '<b>%{y}</b><br>Value: %{x:,.2f}<extra></extra>'
+    
+    fig.update_traces(hovertemplate=hover_template)
+    
+    fig.update_layout(
+        height=600,
+        yaxis={'categoryorder': 'total ascending'},
+        xaxis_title=value_col.replace('_', ' ').title(),
+        yaxis_title='State',
+        title={
+            'x': 0.5,
+            'xanchor': 'center'
+        }
+    )
+    
+    return fig
+
+
+def create_transaction_type_filter_choropleth(df, selected_type=None):
+    """
+    Create choropleth with transaction type filtering capability.
+    
+    Args:
+        df (pd.DataFrame): Transaction data
+        selected_type (str): Selected transaction type filter
+    
+    Returns:
+        plotly.graph_objects.Figure: Filtered choropleth map
+    """
+    if selected_type and selected_type != 'All Types':
+        filtered_df = df[df['Transaction_Type'] == selected_type]
+    else:
+        filtered_df = df
+    
+    # Aggregate by state
+    state_data = filtered_df.groupby('State').agg({
+        'Transaction_Count': 'sum',
+        'Transaction_Amount': 'sum'
+    }).reset_index()
+    
+    # Calculate average transaction value
+    state_data['Avg_Transaction_Value'] = (
+        state_data['Transaction_Amount'] / state_data['Transaction_Count']
+    ).fillna(0)
+    
+    return state_data
+
+
 def get_theme_aware_styles():
     """
     Get theme-aware CSS styles that adapt to light/dark mode.
