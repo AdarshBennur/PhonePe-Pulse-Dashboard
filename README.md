@@ -1,264 +1,98 @@
-# 📱 PhonePe Pulse Dashboard
+# PhonePe Pulse Dashboard
 
-A comprehensive, interactive Streamlit dashboard for analyzing PhonePe's digital payment ecosystem across India. This multi-page application provides deep insights into transaction patterns, user behavior, insurance trends, and geographic distributions.
-
-## 🎯 Features
-
-### 🏠 Home Page
-- **Welcome Overview**: Quick stats and navigation guide
-- **Key Metrics**: Total transactions, users, insurance policies, and values
-- **Quick Insights**: Transaction distribution and top-performing states
-- **Recent Trends**: Latest quarterly patterns
-
-### 📊 Overview Page  
-- **Geographic Analytics**: State-wise transaction heatmaps
-- **Distribution Analysis**: Transaction type breakdowns with interactive donut charts
-- **Performance Comparison**: State performance matrices and correlations
-- **District Analysis**: Top-performing districts and regions
-
-### 💳 Transactions Page
-- **Detailed Filtering**: State, year, quarter, and transaction type filters
-- **Trend Analysis**: Time-series visualization of transaction patterns
-- **Type Breakdown**: Comprehensive analysis by transaction categories
-- **Growth Insights**: Period-over-period growth calculations
-
-### 👥 Users Page
-- **User Analytics**: Registration trends and app engagement metrics
-- **Geographic Distribution**: User adoption patterns across states
-- **Behavior Analysis**: App opens per user and usage intensity
-- **Segmentation**: User segments based on adoption and engagement
-
-### 🛡️ Insurance Page
-- **Regional Analysis**: Insurance adoption patterns by geography
-- **Temporal Trends**: Insurance growth and seasonal patterns
-- **Penetration Analysis**: Insurance penetration rates across states
-- **Value Analysis**: Policy values and market concentration
-
-### 📈 Trends & Comparison Page
-- **Comprehensive Trends**: Multi-metric time-series analysis
-- **State Comparisons**: Side-by-side state performance comparison
-- **Correlation Analysis**: Cross-metric relationship insights
-- **Growth Analysis**: Detailed growth rate calculations
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.8 or higher
-- pip package manager
-
-### Installation & Setup
-
-1. **Clone or Download**: Ensure you have all the project files in your directory
-
-2. **Create Virtual Environment** (Recommended):
-   ```bash
-   # Create virtual environment
-   python3 -m venv venv
-   
-   # Activate on macOS/Linux
-   source venv/bin/activate
-   
-   # Activate on Windows
-   venv\Scripts\activate
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   
-   **Core Dependencies:**
-   - `streamlit>=1.28.0` - Web framework
-   - `plotly>=5.15.0` - Interactive visualizations
-   - `pandas>=1.5.0` - Data processing
-   - `numpy>=1.21.0` - Numerical computing
-
-4. **Verify Data Structure**: Ensure your `/data` folder contains all required CSV files:
-   ```
-   data/
-   ├── aggregated_transactions.csv
-   ├── aggregated_users.csv
-   ├── aggregated_insurance.csv
-   ├── map_transactions.csv
-   └── top_performers.csv
-   ```
-
-5. **Run the Application**:
-   ```bash
-   streamlit run 🏠_Home.py
-   ```
-   
-   **Note:** Always run the application from the project root directory to ensure proper file path resolution.
-
-6. **Access Dashboard**: Open your browser and navigate to `http://localhost:8501`
-
-## 📁 Project Structure
-
-```
-PhonePe Pulse Dashboard/
-├── 🏠_Home.py                  # Main application entry point
-├── requirements.txt            # Python dependencies
-├── README.md                  # This file
-├── data/                      # Data directory (CSV files)
-│   ├── aggregated_transactions.csv
-│   ├── aggregated_users.csv
-│   ├── aggregated_insurance.csv
-│   ├── map_transactions.csv
-│   └── top_performers.csv
-├── utils/                     # Utility functions
-│   └── data_loader.py        # Data loading and processing utilities
-└── pages/                     # Streamlit pages
-    ├── 1_📊_Overview.py      # Geographic and distribution analytics
-    ├── 2_💳_Transactions.py  # Transaction analysis
-    ├── 3_👥_Users.py         # User analytics
-    ├── 4_🛡️_Insurance.py     # Insurance insights
-    └── 5_📈_Trends.py        # Trends and comparative analysis
-```
-
-## 🔧 Configuration & Customization
-
-### Data Requirements
-The dashboard expects CSV files with the following structure:
-
-**aggregated_transactions.csv**:
-- State, Year, Quarter, Transaction_Type, Transaction_Count, Transaction_Amount
-
-**aggregated_users.csv**:
-- State, Year, Quarter, Registered_Users, App_Opens
-
-**aggregated_insurance.csv**:
-- State, Year, Quarter, Insurance_Type, Insurance_Count, Insurance_Amount
-
-**map_transactions.csv**:
-- State, Year, Quarter, District, Transaction_Count, Transaction_Amount
-
-**top_performers.csv**:
-- State, Year, Quarter, Type, Name, Transaction_Count, Transaction_Amount
-
-### Customization Options
-
-1. **Add New Visualizations**: 
-   - Modify page files in `/pages` directory
-   - Use plotly for interactive charts
-   - Follow existing patterns for consistency
-
-2. **Update Styling**:
-   - Modify CSS in individual page files
-   - Update color schemes and themes
-   - Add custom Streamlit components
-
-3. **Extend Functionality**:
-   - Add new utility functions in `/utils/data_loader.py`
-   - Implement additional filters and metrics
-   - Create new analysis pages
-
-## 📊 Key Technologies
-
-- **Frontend**: Streamlit (Interactive web framework)
-- **Visualization**: Plotly (Interactive charts and graphs)
-- **Data Processing**: Pandas, NumPy
-- **Styling**: Custom CSS with Streamlit theming
-- **Architecture**: Multi-page app with modular design
-
-## 🎛️ Usage Tips
-
-### Navigation
-- Use the sidebar to navigate between different analysis sections
-- Each page has independent filters for focused analysis
-- All visualizations are interactive - hover, zoom, and click for details
-
-### Filtering
-- Apply filters to drill down into specific time periods, states, or transaction types
-- Filters are persistent within each page session
-- Clear filters by refreshing the page or selecting "All" options
-
-### Export & Sharing
-- Use Streamlit's built-in screenshot functionality
-- Charts can be downloaded as PNG files via plotly controls
-- Share the dashboard URL for collaborative analysis
-
-## 🚦 Performance Optimization
-
-The dashboard includes several performance optimizations:
-
-- **Data Caching**: `@st.cache_data` for expensive operations
-- **Efficient Loading**: PyArrow for faster CSV processing
-- **Modular Design**: Separate utility functions for reusability
-- **Optimized Queries**: Pandas operations optimized for large datasets
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-1. **Import Errors** (`ModuleNotFoundError` or `reportMissingImports`):
-   - **Solution 1:** Ensure virtual environment is activated before running
-   - **Solution 2:** Install all dependencies: `pip install -r requirements.txt`
-   - **Solution 3 (VSCode):** Select correct Python interpreter:
-     - Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows)
-     - Type "Python: Select Interpreter"
-     - Choose the interpreter from your `venv` folder
-   - **Solution 4:** The `.vscode/settings.json` file is included to help with import resolution
-   - **Solution 5:** Always run from project root: `cd "/Users/adarsh/Labmentix/2. PhonePe"` before running streamlit
-
-2. **File Not Found Error** (`Home.py not found`):
-   - The actual filename is `🏠_Home.py` (with emoji)
-   - Run: `streamlit run 🏠_Home.py` (not `Home.py`)
-   - Always run from the project root directory
-
-3. **Data Loading Errors**:
-   - Verify CSV files are in the correct `/data` directory
-   - Check file formats match expected structure
-   - Ensure all required columns are present
-   - The app uses absolute paths based on project structure, so it should work from anywhere
-
-4. **Performance Issues**:
-   - Clear Streamlit cache: `streamlit cache clear`
-   - Reduce data size if working with very large datasets
-   - Check available system memory
-
-5. **Visualization Problems**:
-   - Update plotly: `pip install --upgrade plotly`
-   - Clear browser cache
-   - Try different browser if issues persist
-
-### Support & Development
-
-For technical support or feature requests:
-1. Check the error messages in the Streamlit interface
-2. Review the console output for detailed error information
-3. Verify all dependencies are correctly installed
-4. Test with sample data to isolate issues
-
-## 📈 Future Enhancements
-
-Potential areas for expansion:
-- Real-time data integration
-- Machine learning predictions
-- Advanced statistical analysis
-- Export functionality for reports
-- Mobile-responsive optimizations
-- Additional geographic visualizations (choropleth maps)
-
-## 🎉 Getting Started Checklist
-
-- [ ] Python 3.8+ installed
-- [ ] Virtual environment created and activated (`python3 -m venv venv && source venv/bin/activate`)
-- [ ] All CSV files in `/data` directory
-- [ ] Dependencies installed (`pip install -r requirements.txt`)
-- [ ] No import warnings in your IDE (if using VSCode, ensure correct interpreter is selected)
-- [ ] Application running from project root (`streamlit run 🏠_Home.py`)
-- [ ] Dashboard accessible in browser at `http://localhost:8501`
-- [ ] All pages loading without errors
-
-## 📞 Contact & Support
-
-This dashboard provides a comprehensive view of PhonePe's digital ecosystem. For optimal experience:
-- Use a modern web browser (Chrome, Firefox, Safari)
-- Ensure stable internet connection for initial loading
-- Allow time for data processing on first run
+_Tracking digital payment adoption across India's 36 states — 235 billion transactions, ₹345 trillion in value, 7 years of data._
 
 ---
 
-**Built with ❤️ using Streamlit, Plotly, and Python**
+## Live Demo & Code
 
-*Ready for immediate launch and production use*
+[Live App](https://phonepe-pulse-dashboard.streamlit.app) · [GitHub](https://github.com/AdarshBennur/PhonePe-Pulse-Dashboard)
+
+---
+
+## Product Overview
+
+PhonePe grew from 1.08 billion transactions in 2018 to 99.3 billion in 2024 — a 91.9× increase. But headline numbers don't tell you which states are maturing, which categories are driving value vs. volume, or where the insurance product has room to grow. This dashboard answers those questions interactively, without writing SQL.
+
+**Who would use this in a real company:** Growth PMs benchmarking state-level penetration, business analysts presenting QBR metrics, strategy teams evaluating insurance rollout priorities.
+
+---
+
+## Analytics & Metrics Layer
+
+### Regional Adoption Patterns
+**Question:** Which states lead, and where does growth remain untapped?
+**What the data shows:** Maharashtra leads all-time with 31.99B transactions, followed by Karnataka (30.97B) and Telangana (26.17B). The choropleth maps reveal a count-vs-value split — states with fewer transactions can rank higher on average transaction value, a signal that a premium user segment exists outside the top metros. District-level data covers 843 districts and shows sub-state pockets that state aggregates mask.
+**Decision it drives:** Where to expand merchant acquisition vs. where to increase spend-per-user.
+
+### Transaction Behavior by Category
+**Question:** Which of the 5 transaction types drives volume, and which drives revenue?
+**What the data shows:** Merchant payments leads by count (130.24B transactions) but Peer-to-peer payments leads by rupee value (₹266.53T — 77% of all transaction value). Recharge & bill payments adds 19.60B transactions at ₹13.34T. Financial Services and Others together total 416M transactions, a clear long-tail.
+**Decision it drives:** These two metrics point to different product lines. Reporting a single "transaction health score" conflates them — they need separate tracking.
+
+### Growth Trends (2018–2024)
+**Question:** Is platform growth accelerating or decelerating, and is that seasonal or structural?
+**What the data shows:** YoY transaction growth rates: 2018→2019 was ~3.8×, 2019→2020 ~2×, 2020→2021 ~2.4×, 2021→2022 ~2×, 2022→2023 ~1.6×, 2023→2024 ~1.5×. The Trends page computes quarter-over-quarter growth rates across transactions, users, and insurance simultaneously — so you can see if a deceleration quarter is platform-wide or category-specific.
+**Decision it drives:** Calibrating annual growth targets; distinguishing saturation in high-penetration states from opportunity in low-penetration ones.
+
+### User Registration & Engagement Segmentation
+**Question:** Are registered users active, and which states have an engagement gap?
+**What the data shows:** 8.86B cumulative registered users generated 402.29B app opens. The dashboard computes opens-per-user at the state level as a stickiness proxy. States are segmented into a 3×3 grid: Low/Medium/High Adoption × Low/Medium/High Engagement. High-registration, low-engagement states are the re-engagement opportunity; low-registration states are the acquisition opportunity.
+**Decision it drives:** Allocates re-engagement campaign budget vs. new user acquisition spend by state.
+
+### Insurance Adoption & Penetration
+**Question:** Which states are under-penetrated for PhonePe's insurance product given their existing user base?
+**What the data shows:** Insurance policies grew 6.4× in 4 years — from 788K in 2020 to 5.07M in 2024. Karnataka leads with 1.96M all-time policies; Maharashtra follows at 1.82M. The penetration metric (insurance_count ÷ registered_users) surfaces states where the user base exists but uptake is low.
+**Decision it drives:** Cross-sell targeting — rank states by (user base size × inverse of penetration rate) to prioritize insurance push campaigns.
+
+---
+
+## Key Insights Found
+
+| Insight | Implication | Action |
+|---|---|---|
+| Merchant payments has 130B transactions; P2P moves ₹266T — 4× more value on fewer transactions | Volume and value metrics point to different products | Track and report them on separate dashboards |
+| Transaction growth decelerated from 3.8× to 1.5× YoY between 2018 and 2024 | High-penetration states are maturing | Shift acquisition investment toward states still in early growth phase |
+| Insurance grew 6.4× in 4 years but is concentrated in Karnataka and Maharashtra | Product-market fit is proven; distribution is the constraint | Prioritize cross-sell in states with high registered users and low insurance penetration |
+| Top 5 states account for a disproportionate share of national transaction volume | Geographic concentration creates platform risk | Deepen incentive programs in mid-tier states to broaden the revenue base |
+
+---
+
+## Tech Stack
+
+| Layer | Tool |
+|---|---|
+| Dashboard framework | Streamlit |
+| Visualizations | Plotly (choropleth, time-series, scatter, sunburst) |
+| Data processing | Pandas, NumPy |
+| Statistical analysis | SciPy, Statsmodels (OLS trendlines, correlation matrices) |
+| Deployment config | GitHub Codespaces (devcontainer) |
+
+---
+
+## Data Source
+
+| | |
+|---|---|
+| Source | PhonePe Pulse (public dataset) |
+| Coverage | 36 states/UTs · 843 districts · Q1 2018 – Q2 2024 |
+| Total rows | ~44,600 across 5 CSV tables |
+| Tables | aggregated_transactions (5,034) · map_transactions (20,604) · top_performers (18,295) · aggregated_users (1,008) · aggregated_insurance (682) |
+| Variables | State, Year, Quarter, Transaction Type, Count, Amount, Registered Users, App Opens, Insurance Count/Amount |
+
+---
+
+## Local Setup
+
+```bash
+git clone https://github.com/AdarshBennur/PhonePe-Pulse-Dashboard.git
+cd PhonePe-Pulse-Dashboard
+pip install -r requirements.txt
+streamlit run 🏠_Home.py
+```
+
+---
+
+## Author
+
+**Adarsh Bennur** · [adarshbennur.com](https://adarshbennur.com) · [linkedin.com/in/adarshbennur](https://linkedin.com/in/adarshbennur)
